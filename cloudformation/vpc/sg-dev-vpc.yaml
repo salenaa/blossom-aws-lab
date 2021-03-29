@@ -1,0 +1,242 @@
+Description: >-
+  This template deploys a VPC, with a pair of public and private subnets spread
+  across two Availability Zones. It deploys an internet gateway, with a default
+  route on the public subnets. It deploys a pair of NAT gateways (one in each
+  AZ), and default routes for them in the private subnets.
+Parameters:
+  EnvironmentName:
+    Description: An environment name that is prefixed to resource names
+    Type: String
+    Default: SG-DEV
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: 10.192.0.0/16
+  SGDEVPublicSubnet1ACIDR:
+    Description: >-
+      Please enter the IP range (CIDR notation) for the public subnet in the
+      first Availability Zone
+    Type: String
+    Default: 10.192.10.0/24
+  SGDEVPrivateToolsSubnet1ACIDR:
+    Description: >-
+      Please enter the IP range (CIDR notation) for the public subnet in the
+      first Availability Zone
+    Type: String
+    Default: 10.192.11.0/24
+  SGDEVPrivateSubnet1ACIDR:
+    Description: >-
+      Please enter the IP range (CIDR notation) for the public subnet in the
+      first Availability Zone
+    Type: String
+    Default: 10.192.20.0/24
+  SGDEVPrivateSubnet1BCIDR:
+    Description: >-
+      Please enter the IP range (CIDR notation) for the public subnet in the
+      first Availability Zone
+    Type: String
+    Default: 10.192.30.0/24
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
+        - Key: Region
+          Value: SG
+        - Key: Environment
+          Value: Development
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
+        - Key: Region
+          Value: SG
+        - Key: Environment
+          Value: Development
+  InternetGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+  SGDEVPublicSubnet1A:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: ap-southeast-1a
+      CidrBlock: !Ref SGDEVPublicSubnet1ACIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: SG-DEV-PUBLIC-SUBNET-1A
+        - Key: Region
+          Value: SG
+        - Key: AZ
+          Value: ap-southeast-1a
+        - Key: Environment
+          Value: Development
+  SGDEVPrivateToolsSubnet1A:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: ap-southeast-1a
+      CidrBlock: !Ref SGDEVPrivateToolsSubnet1ACIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: SG-DEV-PREVATE-TOOLS-SUBNET-1A
+        - Key: Region
+          Value: SG
+        - Key: AZ
+          Value: ap-southeast-1a
+        - Key: Environment
+          Value: Development
+  SGDEVPrivateSubnet1A:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: ap-southeast-1a
+      CidrBlock: !Ref SGDEVPrivateSubnet1ACIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: SG-DEV-PREVATE-SUBNET-1A
+        - Key: Region
+          Value: SG
+        - Key: AZ
+          Value: ap-southeast-1a
+        - Key: Environment
+          Value: Development
+  SGDEVPrivateSubnet1B:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: ap-southeast-1b
+      CidrBlock: !Ref SGDEVPrivateSubnet1BCIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: SG-DEV-PREVATE-SUBNET-1A
+        - Key: Region
+          Value: SG
+        - Key: AZ
+          Value: ap-southeast-1b
+        - Key: Environment
+          Value: Development
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName} Public Routes'
+        - Key: Region
+          Value: SG
+        - Key: Environment
+          Value: Development
+  DefaultPublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnet1ARouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref SGDEVPublicSubnet1A
+  PrivateTools1ARouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName} Private Tools Routes (1A)'
+        - Key: Region
+          Value: SG
+        - Key: AZ
+          Value: ap-southeast-1a
+        - Key: Environment
+          Value: Development
+  PrivateTools1ASubnetRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateTools1ARouteTable
+      SubnetId: !Ref SGDEVPrivateToolsSubnet1A
+  Private1ARouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName} Private Routes (1A)'
+        - Key: Region
+          Value: SG
+        - Key: AZ
+          Value: ap-southeast-1a
+        - Key: Environment
+          Value: Development
+  Private1ASubnetRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref Private1ARouteTable
+      SubnetId: !Ref SGDEVPrivateSubnet1A
+  Private1BRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName} Private Routes (1B)'
+        - Key: Region
+          Value: SG
+        - Key: AZ
+          Value: ap-southeast-1b
+        - Key: Environment
+          Value: Development
+  Private1BSubnetRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref Private1BRouteTable
+      SubnetId: !Ref SGDEVPrivateSubnet1B
+  NoIngressPublicSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: SG-DEV-Public-Default
+      GroupDescription: Default Security group for SG DEV Public
+      VpcId: !Ref VPC
+  NoIngressPrivateSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: SG-DEV-Private-Default
+      GroupDescription: Default Security group for SG DEV Private
+      VpcId: !Ref VPC
+Outputs:
+  VPC:
+    Description: A reference to the created VPC
+    Value: !Ref VPC
+  PublicSubnets:
+    Description: A list of the public subnets
+    Value: !Ref SGDEVPublicSubnet1A
+  PrivateToolsSubnets:
+    Description: A list of the private tools subnets
+    Value: !Ref SGDEVPrivateToolsSubnet1A
+  Private1ASubnets:
+    Description: A list of the private subnets
+    Value: !Ref SGDEVPrivateSubnet1A
+  Private1BSubnets:
+    Description: A list of the private subnets
+    Value: !Ref SGDEVPrivateSubnet1B
+  NoIngressPublicSecurityGroup:
+    Description: Security group with no ingress rule
+    Value: !Ref NoIngressPublicSecurityGroup
+  NoIngressPrivateSecurityGroup:
+    Description: Security group with no ingress rule
+    Value: !Ref NoIngressPrivateSecurityGroup
